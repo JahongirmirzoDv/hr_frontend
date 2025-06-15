@@ -1,3 +1,4 @@
+import uz.mobiledv.hr_frontend.data.remote.Employee
 import uz.mobiledv.hr_frontend.data.remote.LoginRequest
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 
@@ -17,6 +18,15 @@ class HrRepository(private val apiService: ApiService) {
         } catch (e: Exception) {
             // Log the exception, handle different error types, etc.
             println("Login failed: ${e.message}")
+            null
+        }
+    }
+
+    suspend fun getEmployees(token: String): List<Employee>? {
+        return try {
+            apiService.getEmployees(token)
+        } catch (e: Exception) {
+            println("Failed to fetch employees: ${e.message}")
             null
         }
     }

@@ -1,16 +1,15 @@
-// In src/wasmJsMain/kotlin/org/example/project/App.kt
+// In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/App.kt
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
+import uz.mobiledv.hr_frontend.ui.DashboardScreen // <-- Import DashboardScreen
 import uz.mobiledv.hr_frontend.ui.LoginScreen
 
 @Composable
 fun App() {
     MaterialTheme {
-        // Instantiate our services (in a real app, use dependency injection)
         val repository = remember { HrRepository(ApiService()) }
         val coroutineScope = rememberCoroutineScope()
 
@@ -19,9 +18,9 @@ fun App() {
         var errorMessage by remember { mutableStateOf<String?>(null) }
 
         if (activeUser == null) {
-            // Pass a lambda to LoginScreen that calls our repository
             LoginScreen(
-                // This is a simplified version. The state should be passed down.
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onLoginClicked = { username, password ->
                     isLoading = true
                     errorMessage = null
@@ -36,13 +35,16 @@ fun App() {
                     }
                 }
             )
-            // You would also pass isLoading and errorMessage to the LoginScreen
-            // to display them, as we designed in Step 1.
         } else {
-            // If login is successful, show the dashboard
-            // We will create this screen next.
-            // DashboardScreen(user = activeUser!!)
-            Text("Welcome, ${activeUser?.userId}! You are logged in.")
+            // If login is successful, show the DashboardScreen
+            DashboardScreen(
+                user = activeUser!!,
+                repository = repository,
+                onLogout = {
+                    // To log out, simply clear the active user
+                    activeUser = null
+                }
+            )
         }
     }
 }

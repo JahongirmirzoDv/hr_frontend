@@ -7,6 +7,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import uz.mobiledv.hr_frontend.data.remote.Employee
 import uz.mobiledv.hr_frontend.data.remote.LoginRequest
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 
@@ -24,7 +25,7 @@ class ApiService {
     }
 
     // We assume your backend is running locally for now
-    private val baseUrl = "http://192.168.196.199:8081"
+    private val baseUrl = "http://0.0.0.0:8080"
 
     /**
      * Performs a login request to the hr-ktorBackend.
@@ -35,6 +36,12 @@ class ApiService {
         return client.post("$baseUrl/login") {
             contentType(ContentType.Application.Json)
             setBody(request)
+        }.body()
+    }
+
+    suspend fun getEmployees(token: String): List<Employee> {
+        return client.get("$baseUrl/employees") {
+            bearerAuth(token) // Add the JWT as a Bearer token
         }.body()
     }
 }

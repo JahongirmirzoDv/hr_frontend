@@ -1,3 +1,5 @@
+// In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/ui/LoginScreen.kt
+
 package uz.mobiledv.hr_frontend.ui
 
 import androidx.compose.foundation.layout.*
@@ -9,21 +11,22 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 /**
- * A simple login screen Composable.
+ * A simple login screen Composable. It is now stateless.
  *
+ * @param isLoading Whether the login process is in progress.
+ * @param errorMessage An optional error message to display.
  * @param onLoginClicked A callback function that is invoked when the user clicks the login button.
  * It provides the entered username and password.
  */
 @Composable
-fun LoginScreen(onLoginClicked: (username: String, password: String) -> Unit) {
-    // 1. State holders for the input fields
+fun LoginScreen(
+    isLoading: Boolean,
+    errorMessage: String?,
+    onLoginClicked: (username: String, password: String) -> Unit
+) {
+    // State for input fields is okay to keep here as it's specific to this screen's input boxes.
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) } // To show a loading indicator
-    var errorMessage by remember { mutableStateOf<String?>(null) } // To show an error
-
-    // This would be triggered by the result of the onLoginClicked call
-    // For now, we'll just build the UI.
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -43,26 +46,26 @@ fun LoginScreen(onLoginClicked: (username: String, password: String) -> Unit) {
                     style = MaterialTheme.typography.headlineSmall
                 )
 
-                // 2. Username Input Field
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Username") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading // Also disable fields when loading
                 )
 
-                // 3. Password Input Field
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading // Also disable fields when loading
                 )
 
-                // 4. Show an error message if it exists
+                // Show an error message if it exists
                 errorMessage?.let {
                     Text(
                         text = it,
@@ -71,13 +74,9 @@ fun LoginScreen(onLoginClicked: (username: String, password: String) -> Unit) {
                     )
                 }
 
-                // 5. Login Button
+                // Login Button now reads the isLoading state passed as a parameter
                 Button(
-                    onClick = {
-
-                        // When clicked, we trigger the callback function
-                        onLoginClicked(username, password)
-                    },
+                    onClick = { onLoginClicked(username, password) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading // Disable button when loading
                 ) {
