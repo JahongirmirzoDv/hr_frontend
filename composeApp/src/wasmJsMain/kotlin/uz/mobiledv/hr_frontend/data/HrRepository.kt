@@ -13,20 +13,28 @@ class HrRepository(private val apiService: ApiService) {
      */
     suspend fun login(username: String, password: String): LoginResponse? {
         return try {
+            println("Repository: Attempting login for $username")
             val request = LoginRequest(username, password)
-            apiService.login(request)
+            val response = apiService.login(request)
+            println("Repository: Login successful for user ${response.userId}")
+            response
         } catch (e: Exception) {
             // Log the exception, handle different error types, etc.
-            println("Login failed: ${e.message}")
+            println("Repository: Login failed: ${e.message}")
+            e.printStackTrace()
             null
         }
     }
 
     suspend fun getEmployees(token: String): List<Employee>? {
         return try {
-            apiService.getEmployees(token)
+            println("Repository: Fetching employees")
+            val employees = apiService.getEmployees(token)
+            println("Repository: Fetched ${employees.size} employees")
+            employees
         } catch (e: Exception) {
-            println("Failed to fetch employees: ${e.message}")
+            println("Repository: Failed to fetch employees: ${e.message}")
+            e.printStackTrace()
             null
         }
     }

@@ -1,4 +1,4 @@
-// In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/ui/DashboardScreen.kt
+// composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/ui/DashboardScreen.kt
 
 package uz.mobiledv.hr_frontend.ui
 
@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 @Composable
 fun DashboardScreen(
     user: LoginResponse,
-    repository: HrRepository, // Pass the repository to the dashboard
+    repository: HrRepository,
     onLogout: () -> Unit
 ) {
     // State for the employee list, loading, and error
@@ -30,28 +31,49 @@ fun DashboardScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
-    // LaunchedEffect will run once when the screen is first displayed.
-    // It's the perfect place to make our initial data-fetching call.
-    LaunchedEffect(Unit) {
+    // Function to load employees
+    fun loadEmployees() {
+        isLoading = true
+        errorMessage = null
         coroutineScope.launch {
-            val result = repository.getEmployees(user.token)
-            if (result != null) {
-                employees = result
-            } else {
-                errorMessage = "Failed to load employee data."
+            try {
+                println("Dashboard: Loading employees")
+                val result = repository.getEmployees(user.token)
+                if (result != null) {
+                    employees = result
+                    println("Dashboard: Loaded ${result.size} employees")
+                } else {
+                    errorMessage = "Failed to load employee data."
+                    println("Dashboard: Failed to load employees")
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error loading employees: ${e.message}"
+                println("Dashboard: Exception loading employees: ${e.message}")
+            } finally {
+                isLoading = false
             }
-            isLoading = false
         }
+    }
+
+    // LaunchedEffect will run once when the screen is first displayed.
+    LaunchedEffect(Unit) {
+        loadEmployees()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard") },
+                title = { Text("HR Dashboard - Welcome ${user.userId}") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
                 actions = {
+                    IconButton(
+                        onClick = { loadEmployees() },
+                        enabled = !isLoading
+                    ) {
+                        Icon(Icons.Default.Refresh, "Refresh")
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.Default.ExitToApp, "Logout")
                     }
@@ -65,15 +87,41 @@ fun DashboardScreen(
         ) {
             when {
                 isLoading -> {
-                    // Show a loading spinner
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text("Loading employees...")
+                    }
                 }
                 errorMessage != null -> {
-                    // Show an error message
-                    Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(onClick = { loadEmployees() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                employees.isEmpty() -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("No employees found")
+                        Button(onClick = { loadEmployees() }) {
+                            Text("Refresh")
+                        }
+                    }
                 }
                 else -> {
-                    // Show the list of employees
                     EmployeeList(employees)
                 }
             }
@@ -90,7 +138,7 @@ fun EmployeeList(employees: List<Employee>) {
     ) {
         item {
             Text(
-                "Employee Roster",
+                "Employee Roster (${employees.size} employees)",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -103,7 +151,10 @@ fun EmployeeList(employees: List<Employee>) {
 
 @Composable
 fun EmployeeListItem(employee: Employee) {
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,8 +162,20 @@ fun EmployeeListItem(employee: Employee) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(employee.name, style = MaterialTheme.typography.bodyLarge)
-                Text(employee.position, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    employee.name,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    employee.position,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "ID: ${employee.id}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

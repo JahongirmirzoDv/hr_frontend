@@ -1,10 +1,14 @@
-// In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/App.kt
+// composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/App.kt
 
+package uz.mobiledv.hr_frontend
+
+import ApiService
+import HrRepository
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
-import uz.mobiledv.hr_frontend.ui.DashboardScreen // <-- Import DashboardScreen
+import uz.mobiledv.hr_frontend.ui.DashboardScreen
 import uz.mobiledv.hr_frontend.ui.LoginScreen
 
 @Composable
@@ -22,16 +26,28 @@ fun App() {
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 onLoginClicked = { username, password ->
-                    isLoading = true
+                    // Clear previous error
                     errorMessage = null
+                    isLoading = true
+
                     coroutineScope.launch {
-                        val user = repository.login(username, password)
-                        if (user != null) {
-                            activeUser = user
-                        } else {
-                            errorMessage = "Invalid credentials. Please try again."
+                        try {
+                            println("App: Starting login process")
+                            val user = repository.login(username, password)
+                            if (user != null) {
+                                println("App: Login successful")
+                                activeUser = user
+                                errorMessage = null
+                            } else {
+                                println("App: Login failed - invalid credentials")
+                                errorMessage = "Invalid credentials. Please try again."
+                            }
+                        } catch (e: Exception) {
+                            println("App: Login exception: ${e.message}")
+                            errorMessage = "Login failed: ${e.message ?: "Unknown error"}"
+                        } finally {
+                            isLoading = false
                         }
-                        isLoading = false
                     }
                 }
             )
@@ -42,7 +58,9 @@ fun App() {
                 repository = repository,
                 onLogout = {
                     // To log out, simply clear the active user
+                    println("App: Logging out user")
                     activeUser = null
+                    errorMessage = null
                 }
             )
         }
