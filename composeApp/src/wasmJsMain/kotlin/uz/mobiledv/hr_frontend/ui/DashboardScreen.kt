@@ -63,7 +63,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("HR Dashboard - Welcome ${user.userId}") },
+                title = { Text("HR Dashboard - Welcome ${user.user.id}") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),

@@ -16,7 +16,7 @@ class HrRepository(private val apiService: ApiService) {
             println("Repository: Attempting login for $username")
             val request = LoginRequest(username, password)
             val response = apiService.login(request)
-            println("Repository: Login successful for user ${response.userId}")
+            println("Repository: Login successful for user ${response.user.id}")
             response
         } catch (e: Exception) {
             // Log the exception, handle different error types, etc.

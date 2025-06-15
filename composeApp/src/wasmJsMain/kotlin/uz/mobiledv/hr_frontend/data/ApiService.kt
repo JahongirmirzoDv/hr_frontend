@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import uz.mobiledv.hr_frontend.data.remote.Employee
+import uz.mobiledv.hr_frontend.data.remote.ErrorResponse
 import uz.mobiledv.hr_frontend.data.remote.LoginRequest
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 
@@ -31,7 +32,7 @@ class ApiService {
     }
 
     // We assume your backend is running locally for now
-    private val baseUrl = "http://localhost:9080"
+    private val baseUrl = "http://0.0.0.0:8080"
 
     /**
      * Performs a login request to the hr-ktorBackend.
@@ -40,8 +41,8 @@ class ApiService {
      */
     suspend fun login(request: LoginRequest): LoginResponse {
         try {
-            println("Attempting login for user: ${request.username}")
-            val response = client.post("$baseUrl/login") {
+            println("Attempting login for user: ${request.email}")
+            val response = client.post("$baseUrl/auth/login") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
                 headers {
