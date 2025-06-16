@@ -8,16 +8,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
+import uz.mobiledv.hr_frontend.data.storage.AuthStorage
 import uz.mobiledv.hr_frontend.ui.DashboardScreen
 import uz.mobiledv.hr_frontend.ui.LoginScreen
 
 @Composable
 fun App() {
     MaterialTheme {
-        val repository = remember { HrRepository(ApiService()) }
+        val repository = remember { HrRepository(ApiService(), AuthStorage()) }
         val coroutineScope = rememberCoroutineScope()
 
-        var activeUser by remember { mutableStateOf<LoginResponse?>(null) }
+        var activeUser by remember { mutableStateOf(repository.getInitialUser()) }
         var isLoading by remember { mutableStateOf(false) }
         var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -59,8 +60,9 @@ fun App() {
                 onLogout = {
                     // To log out, simply clear the active user
                     println("App: Logging out user")
-                    activeUser = null
+                    repository.logout()
                     errorMessage = null
+                    activeUser = null
                 }
             )
         }

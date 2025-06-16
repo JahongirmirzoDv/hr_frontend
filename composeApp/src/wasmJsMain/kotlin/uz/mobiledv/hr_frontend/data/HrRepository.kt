@@ -1,3 +1,4 @@
+import uz.mobiledv.hr_frontend.data.storage.AuthStorage
 import uz.mobiledv.hr_frontend.data.remote.AttendanceRecord
 import uz.mobiledv.hr_frontend.data.remote.CreateAttendanceRequest
 import uz.mobiledv.hr_frontend.data.remote.CreateEmployeeRequest
@@ -15,17 +16,29 @@ import uz.mobiledv.hr_frontend.data.remote.UserResponse
 // In src/wasmJsMain/kotlin/org/example/project/data/repository/HrRepository.kt
 
 
-class HrRepository(private val apiService: ApiService) {
+class HrRepository(
+    private val apiService: ApiService,
+    private val authStorage: AuthStorage
+) {
 
     /**
      * Tries to log in the user.
      * @return LoginResponse on success, null on failure.
      */
+
+    fun getInitialUser(): LoginResponse? {
+        return authStorage.getUser()
+    }
+
+    fun logout() {
+        authStorage.clearUser()
+    }
     suspend fun login(username: String, password: String): LoginResponse? {
         return try {
             println("Repository: Attempting login for $username")
             val request = LoginRequest(username, password)
             val response = apiService.login(request)
+            authStorage.saveUser(response)
             println("Repository: Login successful for user ${response.user.id}")
             response
         } catch (e: Exception) {
