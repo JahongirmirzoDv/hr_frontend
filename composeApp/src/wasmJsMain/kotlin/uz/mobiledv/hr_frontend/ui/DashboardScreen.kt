@@ -19,17 +19,19 @@ import uz.mobiledv.hr_frontend.data.HrRepository
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 import uz.mobiledv.hr_frontend.ui.attendance.AttendanceManagementScreen
 import uz.mobiledv.hr_frontend.ui.employee.EmployeeManagementScreen
+import uz.mobiledv.hr_frontend.ui.payroll.PayrollScreen
 import uz.mobiledv.hr_frontend.ui.project.ProjectManagementScreen
+import uz.mobiledv.hr_frontend.ui.report.ReportScreen
 import uz.mobiledv.hr_frontend.ui.reports.ReportingDashboardScreen
-import uz.mobiledv.hr_frontend.ui.user.UserManagementScreen
 
+// Updated Screen sealed class to include all new screens
 sealed class Screen(val title: String) {
-    object Reporting : Screen("Dashboard") // Renamed for consistency with mockups
+    object Reporting : Screen("Dashboard")
     object Employees : Screen("Employees")
     object Projects : Screen("Projects")
     object Attendance : Screen("Attendance")
-    object Reports : Screen("Reports")
     object Payroll : Screen("Payroll")
+    object Reports : Screen("Reports")
 }
 
 @Composable
@@ -45,7 +47,6 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Our new Top Header Navigation
         TopHeader(
             currentScreen = currentScreen,
             onScreenSelect = { currentScreen = it },
@@ -60,9 +61,8 @@ fun DashboardScreen(
                 is Screen.Projects -> ProjectManagementScreen(repository, user.token)
                 is Screen.Employees -> EmployeeManagementScreen(repository, user.token)
                 is Screen.Attendance -> AttendanceManagementScreen(repository, user.token)
-                // Add placeholders for other screens from mockups
-                is Screen.Payroll -> CenterText("Payroll Management")
-                is Screen.Reports -> CenterText("Report Generation")
+                is Screen.Payroll -> PayrollScreen() // New Screen
+                is Screen.Reports -> ReportScreen() // New Screen
             }
         }
     }
@@ -75,7 +75,9 @@ fun TopHeader(
     userName: String,
     onLogout: () -> Unit
 ) {
-    val screens = listOf(Screen.Reporting, Screen.Employees, Screen.Projects, Screen.Payroll, Screen.Reports)
+    // Correct order from mockups
+    val screens =
+        listOf(Screen.Reporting, Screen.Employees, Screen.Projects, Screen.Attendance, Screen.Payroll, Screen.Reports)
 
     Row(
         modifier = Modifier
@@ -86,41 +88,73 @@ fun TopHeader(
     ) {
         Text(
             text = "ConstructHR",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(Modifier.width(48.dp))
+        Spacer(Modifier.width(64.dp))
 
         // Navigation links
         screens.forEach { screen ->
             HeaderButton(
                 text = screen.title,
-                isSelected = screen == currentScreen,
+                isSelected = screen.title == currentScreen.title,
                 onClick = { onScreenSelect(screen) }
             )
         }
 
         Spacer(Modifier.weight(1f))
 
-        // Right side icons
-        IconButton(onClick = { /* TODO */ }) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface)
-        }
-        Spacer(Modifier.width(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onLogout() }) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(userName.first().toString(), color = Color.White, fontWeight = FontWeight.Bold)
+        // User profile and actions
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            IconButton(onClick = { /* TODO: Notification logic */ }) {
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = "Notifications",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            // This is just a placeholder, you can add a dropdown on click
-            Text(userName, style = MaterialTheme.typography.bodyMedium)
+
+            var showLogoutMenu by remember { mutableStateOf(false) }
+            Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clip(CircleShape).clickable { showLogoutMenu = true }.padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            userName.firstOrNull()?.toString()?.uppercase() ?: "U",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(userName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
+
+                DropdownMenu(
+                    expanded = showLogoutMenu,
+                    onDismissRequest = { showLogoutMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Log Out") },
+                        onClick = {
+                            showLogoutMenu = false
+                            onLogout()
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -131,15 +165,13 @@ fun HeaderButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-    TextButton(onClick = onClick) {
-        Text(text, color = color, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
-    }
-}
-
-@Composable
-fun CenterText(text: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.headlineSmall)
+    val color =
+        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+    val weight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+    TextButton(
+        onClick = onClick,
+        colors = ButtonDefaults.textButtonColors(contentColor = color)
+    ) {
+        Text(text, fontWeight = weight, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
     }
 }

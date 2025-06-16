@@ -9,8 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,26 +23,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import uz.mobiledv.hr_frontend.data.remote.*
+import kotlin.math.ceil
 
 @Composable
 fun EmployeeManagementScreen(repository: HrRepository, token: String) {
-    var employees by remember { mutableStateOf<List<Employee>>(emptyList()) }
+    var allEmployees by remember { mutableStateOf<List<Employee>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Dialog states
     var showCreateDialog by remember { mutableStateOf(false) }
     var employeeToEdit by remember { mutableStateOf<Employee?>(null) }
     var employeeToDelete by remember { mutableStateOf<Employee?>(null) }
-
     val coroutineScope = rememberCoroutineScope()
+
+    // State for Search and Filter
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf("All") }
+
+    // State for Pagination
+    val pageSize = 10
+    var currentPage by remember { mutableStateOf(1) }
 
     fun refreshEmployees() {
         isLoading = true
         errorMessage = null
         coroutineScope.launch {
             try {
-                employees = repository.getEmployees(token) ?: emptyList()
+                allEmployees = repository.getEmployees(token) ?: emptyList()
             } catch (e: Exception) {
                 errorMessage = "Failed to load employees: ${e.message}"
             } finally {
@@ -50,23 +59,93 @@ fun EmployeeManagementScreen(repository: HrRepository, token: String) {
 
     LaunchedEffect(Unit) { refreshEmployees() }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCreateDialog = true }) {
-                Icon(Icons.Default.Add, "Add Employee")
+    val filteredEmployees = remember(searchQuery, statusFilter, allEmployees) {
+        allEmployees
+            .filter { employee ->
+                employee.name.contains(searchQuery, ignoreCase = true) ||
+                        employee.position.contains(searchQuery, ignoreCase = true)
+            }
+            .filter { employee ->
+                when (statusFilter) {
+                    "Active" -> employee.isActive
+                    "Inactive" -> !employee.isActive
+                    else -> true
+                }
+            }
+    }
+
+    val totalPages = ceil(filteredEmployees.size.toFloat() / pageSize).toInt()
+    val paginatedEmployees = filteredEmployees.chunked(pageSize).getOrNull(currentPage - 1) ?: emptyList()
+
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp)) {
+        // Header
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Employees",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Button(onClick = { showCreateDialog = true }) {
+                Icon(Icons.Default.Add, "Add Employee", Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Add Employee")
             }
         }
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-            when {
-                isLoading -> CircularProgressIndicator()
-                errorMessage != null -> Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
-                employees.isEmpty() -> Text("No employees found.")
-                else -> EmployeeList(
-                    employees = employees,
-                    onEditClick = { employeeToEdit = it },
-                    onDeleteClick = { employeeToDelete = it }
-                )
+        Spacer(Modifier.height(24.dp))
+
+        // Search and Filter Bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("Search by name or position...") },
+                leadingIcon = { Icon(Icons.Default.Search, "Search") }
+            )
+            // TODO: Add more filters for Role, Project as in mockup
+            FilterDropdown(
+                label = "Status",
+                options = listOf("All", "Active", "Inactive"),
+                selectedOption = statusFilter,
+                onOptionSelected = { statusFilter = it }
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+
+        // Content Area
+        Card(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    errorMessage != null -> Text(
+                        errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+
+                    allEmployees.isEmpty() -> Text("No employees found.", modifier = Modifier.align(Alignment.Center))
+                    else -> {
+                        Column {
+                            EmployeeList(
+                                employees = paginatedEmployees,
+                                onEditClick = { employeeToEdit = it },
+                                onDeleteClick = { employeeToDelete = it }
+                            )
+                            Spacer(Modifier.weight(1f))
+                            PaginationControls(
+                                currentPage = currentPage,
+                                totalPages = totalPages,
+                                onPageChange = { currentPage = it }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -145,8 +224,13 @@ fun EmployeeDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") })
                 OutlinedTextField(value = position, onValueChange = { position = it }, label = { Text("Position") })
-                OutlinedTextField(value = salaryRate, onValueChange = { salaryRate = it }, label = { Text("Salary Rate") })
-                ExposedDropdownMenuBox(expanded = isDropdownExpanded, onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }) {
+                OutlinedTextField(
+                    value = salaryRate,
+                    onValueChange = { salaryRate = it },
+                    label = { Text("Salary Rate") })
+                ExposedDropdownMenuBox(
+                    expanded = isDropdownExpanded,
+                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }) {
                     OutlinedTextField(
                         value = selectedSalaryType,
                         onValueChange = {},
@@ -155,7 +239,9 @@ fun EmployeeDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded) },
                         modifier = Modifier.menuAnchor()
                     )
-                    ExposedDropdownMenu(expanded = isDropdownExpanded, onDismissRequest = { isDropdownExpanded = false }) {
+                    ExposedDropdownMenu(
+                        expanded = isDropdownExpanded,
+                        onDismissRequest = { isDropdownExpanded = false }) {
                         salaryTypes.forEach { type ->
                             DropdownMenuItem(text = { Text(type.name) }, onClick = {
                                 selectedSalaryType = type.name
@@ -193,7 +279,10 @@ fun ConfirmDeleteDialog(employeeName: String, onDismiss: () -> Unit, onConfirm: 
         title = { Text("Confirm Deletion") },
         text = { Text("Are you sure you want to delete employee '$employeeName'?") },
         confirmButton = {
-            Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Delete") }
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
@@ -205,7 +294,11 @@ fun EmployeeList(
     onEditClick: (Employee) -> Unit,
     onDeleteClick: (Employee) -> Unit
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         items(employees) { employee ->
             EmployeeListItem(
                 employee = employee,
@@ -225,7 +318,8 @@ fun EmployeeListItem(
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer),
+                modifier = Modifier.size(56.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(employee.name.firstOrNull()?.toString() ?: "", style = MaterialTheme.typography.titleLarge)
@@ -244,6 +338,50 @@ fun EmployeeListItem(
                 IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, "Edit Employee") }
                 IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, "Delete Employee") }
             }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterDropdown(label: String, options: List<String>, selectedOption: String, onOptionSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        OutlinedTextField(
+            value = selectedOption,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().width(150.dp)
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = {
+                    onOptionSelected(option)
+                    expanded = false
+                })
+            }
+        }
+    }
+}
+
+@Composable
+fun PaginationControls(currentPage: Int, totalPages: Int, onPageChange: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        IconButton(onClick = { onPageChange(currentPage - 1) }, enabled = currentPage > 1) {
+            Icon(Icons.Default.ChevronLeft, "Previous Page")
+        }
+        Spacer(Modifier.width(16.dp))
+        Text("Page $currentPage of $totalPages", style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.width(16.dp))
+        IconButton(onClick = { onPageChange(currentPage + 1) }, enabled = currentPage < totalPages) {
+            Icon(Icons.Default.ChevronRight, "Next Page")
         }
     }
 }

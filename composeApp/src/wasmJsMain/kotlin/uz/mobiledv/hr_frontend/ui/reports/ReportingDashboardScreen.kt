@@ -1,21 +1,20 @@
-// In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/ui/reporting/ReportingDashboardScreen.kt
 package uz.mobiledv.hr_frontend.ui.reports
 
-import uz.mobiledv.hr_frontend.data.ApiService
-import uz.mobiledv.hr_frontend.data.HrRepository
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
+import androidx.compose.ui.unit.sp
+import uz.mobiledv.hr_frontend.data.HrRepository
 import uz.mobiledv.hr_frontend.data.remote.DashboardSummary
+import uz.mobiledv.hr_frontend.data.remote.ProjectAttendanceSummary
 
 @Composable
 fun ReportingDashboardScreen(repository: HrRepository, token: String) {
@@ -35,25 +34,15 @@ fun ReportingDashboardScreen(repository: HrRepository, token: String) {
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                icon = { Icon(Icons.Default.Download, contentDescription = "Export") },
-                text = { Text("Export Reports") },
-                onClick = { /* TODO: Implement CSV/Excel export logic */ }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            when {
-                isLoading -> CircularProgressIndicator()
-                errorMessage != null -> Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
-                summary == null -> Text("No summary data available.")
-                else -> DashboardContent(summary!!)
-            }
+    Box(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        when {
+            isLoading -> CircularProgressIndicator()
+            errorMessage != null -> Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+            summary == null -> Text("No summary data available.", color = MaterialTheme.colorScheme.onSurface)
+            else -> DashboardContent(summary!!)
         }
     }
 }
@@ -61,57 +50,121 @@ fun ReportingDashboardScreen(repository: HrRepository, token: String) {
 @Composable
 fun DashboardContent(summary: DashboardSummary) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
-            Text("Analytics Dashboard", style = MaterialTheme.typography.headlineMedium)
+            Text(
+                "Dashboard",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Welcome back, here is the summary of your business.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
         }
 
         item {
-            // Daily Summary Card
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Daily Summary", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
-                        StatItem("Checked-in Today", summary.checkedInToday.toString())
-                        StatItem("Absent Today", summary.absentToday.toString())
-                    }
-                }
+            // Key Metrics Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                StatCard("Checked-in Today", summary.checkedInToday.toString(), Modifier.weight(1f))
+                StatCard("Absent Today", summary.absentToday.toString(), Modifier.weight(1f))
+                StatCard(
+                    "Monthly Salary Expenses",
+                    "$",//+ "%.2f".format(summary.monthlySalaryExpense) // Mock data, use summary.monthlySalaryExpense
+                    Modifier.weight(1f)
+                )
             }
         }
 
         item {
-            // Monthly Expenses Card
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Financials", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(8.dp))
-                    StatItem("Total Salary Expenses (Month)","")//"$" + "%.2f".format(summary.monthlySalaryExpense)
-                    Spacer(Modifier.height(8.dp))
-                    Text("// TODO: Implement Salary Chart (e.g., Bar Chart)", style = MaterialTheme.typography.bodySmall)
-                }
+            Text(
+                "Analytics",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+
+        item {
+            // Analytics Cards Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                AnalyticsChartCard("Attendance Trends", Modifier.weight(1f))
+                AnalyticsChartCard("Salary Analytics", Modifier.weight(1f))
+                AnalyticsChartCard("Overtime Statistics", Modifier.weight(1f))
             }
         }
 
         item {
-            Text("Monthly Attendance Per Project", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Attendance Per Project",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 16.dp)
+            )
         }
 
         items(summary.attendancePerProject) { projectSummary ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(projectSummary.projectName, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
-                        StatItem("Present", projectSummary.totalPresent.toString())
-                        StatItem("Absent", projectSummary.totalAbsent.toString())
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text("// TODO: Implement Attendance Chart (e.g., Pie Chart)", style = MaterialTheme.typography.bodySmall)
-                }
+            ProjectAttendanceCard(projectSummary)
+        }
+    }
+}
+
+@Composable
+fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(24.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun AnalyticsChartCard(title: String, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.height(300.dp)) {
+        Column(Modifier.padding(24.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("// TODO: Implement Chart", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
+        }
+    }
+}
+
+@Composable
+fun ProjectAttendanceCard(projectSummary: ProjectAttendanceSummary) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                projectSummary.projectName,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+                fontWeight = FontWeight.Bold
+            )
+            StatItem("Present", projectSummary.totalPresent.toString())
+            Spacer(Modifier.width(24.dp))
+            StatItem("Absent", projectSummary.totalAbsent.toString())
         }
     }
 }
@@ -120,6 +173,10 @@ fun DashboardContent(summary: DashboardSummary) {
 fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
     }
 }
