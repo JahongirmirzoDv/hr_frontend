@@ -70,7 +70,7 @@ class ApiService {
     suspend fun getEmployees(token: String): List<Employee> {
         try {
             println("Fetching employees with token: ${token.take(10)}...")
-            val response = client.get("$baseUrl/employees") {
+            val response = client.get("$baseUrl/admin/employees") {
                 bearerAuth(token) // Add the JWT as a Bearer token
                 headers {
                     append("Accept", "application/json")

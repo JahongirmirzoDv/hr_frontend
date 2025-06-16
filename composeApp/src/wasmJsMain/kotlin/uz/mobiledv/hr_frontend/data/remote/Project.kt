@@ -7,10 +7,14 @@ import kotlinx.serialization.Serializable
 data class Project(
     val id: String,
     val name: String,
-    val location: String,
     val description: String,
-    val startDate: String, // Use String for simplicity, consider kotlinx-datetime for real projects
+    val location: String,
+    val startDate: String,
     val endDate: String,
     val managerId: String,
-    val employeeIds: List<String>
+    val employeeIds: List<String>,
+    val budget: Double,
+    val status: String,
+    val createdAt: String,
+    val updatedAt: String
 )

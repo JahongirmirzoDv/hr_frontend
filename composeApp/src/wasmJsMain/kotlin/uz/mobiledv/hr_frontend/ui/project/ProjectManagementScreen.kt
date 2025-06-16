@@ -164,7 +164,11 @@ fun ProjectDialog(
                             startDate = startDate,
                             endDate = endDate,
                             managerId = project?.managerId ?: "",
-                            employeeIds = project?.employeeIds ?: emptyList()
+                            employeeIds = project?.employeeIds ?: emptyList(),
+                            budget = project?.budget ?: 0.0,
+                            status = project?.status ?: "",
+                            createdAt = project?.createdAt ?: "",
+                            updatedAt = project?.updatedAt ?: ""
                         )
                     )
                 }
