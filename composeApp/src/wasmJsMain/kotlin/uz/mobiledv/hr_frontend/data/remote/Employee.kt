@@ -8,5 +8,7 @@ import kotlinx.serialization.Serializable
 data class Employee(
     val id: String,
     val name: String,
-    val position: String
+    val position: String,
+    val salaryType: String,
+    val salaryAmount: Double,
 )
