@@ -1,6 +1,7 @@
 package uz.mobiledv.hr_frontend.ui.employee
 
-import HrRepository
+import uz.mobiledv.hr_frontend.data.ApiService
+import uz.mobiledv.hr_frontend.data.HrRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

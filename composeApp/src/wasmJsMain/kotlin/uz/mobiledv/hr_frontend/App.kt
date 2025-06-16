@@ -2,19 +2,21 @@
 
 package uz.mobiledv.hr_frontend
 
-import ApiService
-import HrRepository
+
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import uz.mobiledv.hr_frontend.data.ApiService
+import uz.mobiledv.hr_frontend.data.HrRepository
 import uz.mobiledv.hr_frontend.data.remote.LoginResponse
 import uz.mobiledv.hr_frontend.data.storage.AuthStorage
 import uz.mobiledv.hr_frontend.ui.DashboardScreen
 import uz.mobiledv.hr_frontend.ui.LoginScreen
+import uz.mobiledv.hr_frontend.ui.theme.HrAppTheme
 
 @Composable
 fun App() {
-    MaterialTheme {
+    HrAppTheme {
         val repository = remember { HrRepository(ApiService(), AuthStorage()) }
         val coroutineScope = rememberCoroutineScope()
 

@@ -1,3 +1,5 @@
+package uz.mobiledv.hr_frontend.data
+
 import uz.mobiledv.hr_frontend.data.storage.AuthStorage
 import uz.mobiledv.hr_frontend.data.remote.AttendanceRecord
 import uz.mobiledv.hr_frontend.data.remote.CreateAttendanceRequest
@@ -62,7 +64,6 @@ class HrRepository(
         }
     }
 
-    // --- Projects (NEW) ---
     suspend fun getProjects(token: String): List<Project>? {
         return try {
             apiService.getProjects(token)
@@ -81,7 +82,6 @@ class HrRepository(
         }
     }
 
-    // --- Users (NEW) ---
     suspend fun getUsers(token: String): List<UserResponse>? {
         return try {
             apiService.getUsers(token)
@@ -91,7 +91,6 @@ class HrRepository(
         }
     }
 
-    // --- Attendance (NEW) ---
     suspend fun getAttendanceForProject(token: String, projectId: String): List<AttendanceRecord>? {
         return try {
             apiService.getAttendanceForProject(token, projectId)
@@ -120,7 +119,6 @@ class HrRepository(
         }
     }
 
-    // Add this function inside your HrRepository class
     suspend fun createUser(token: String, userRequest: CreateUserRequest): UserResponse? {
         return try {
             apiService.createUser(token, userRequest)

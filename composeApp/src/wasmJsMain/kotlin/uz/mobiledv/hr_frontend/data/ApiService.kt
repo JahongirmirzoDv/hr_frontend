@@ -1,4 +1,5 @@
 // In src/wasmJsMain/kotlin/org/example/project/data/remote/ApiService.kt
+package uz.mobiledv.hr_frontend.data
 
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -84,7 +85,7 @@ class ApiService {
         }
     }
 
-    // --- Project Management (NEW) ---
+
     suspend fun getProjects(token: String): List<Project> {
         return client.get("$baseUrl/admin/projects") {
             bearerAuth(token)
@@ -99,14 +100,14 @@ class ApiService {
         }.body()
     }
 
-    // --- User Management (NEW) ---
+
     suspend fun getUsers(token: String): List<UserResponse> {
         return client.get("$baseUrl/admin/users") {
             bearerAuth(token)
         }.body()
     }
 
-    // --- Attendance Management (NEW) ---
+
     suspend fun getAttendanceForProject(token: String, projectId: String): List<AttendanceRecord> {
         return client.get("$baseUrl/admin/attendance") {
             bearerAuth(token)

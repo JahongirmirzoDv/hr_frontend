@@ -1,7 +1,8 @@
 // In composeApp/src/wasmJsMain/kotlin/uz/mobiledv/hr_frontend/ui/reporting/ReportingDashboardScreen.kt
 package uz.mobiledv.hr_frontend.ui.reports
 
-import HrRepository
+import uz.mobiledv.hr_frontend.data.ApiService
+import uz.mobiledv.hr_frontend.data.HrRepository
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
