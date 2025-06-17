@@ -18,22 +18,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import uz.mobiledv.hr_frontend.data.remote.CreateUserRequest
 import uz.mobiledv.hr_frontend.data.remote.UpdateUserRequest
 import uz.mobiledv.hr_frontend.data.remote.UserResponse
 import uz.mobiledv.hr_frontend.ui.employee.FilterDropdown
 import uz.mobiledv.hr_frontend.ui.employee.PaginationControls
+import uz.mobiledv.hr_frontend.vm.UserManagementViewModel
 import kotlin.math.ceil
 
 @Composable
-fun UserManagementScreen(repository: HrRepository, token: String) {
-    var allUsers by remember { mutableStateOf<List<UserResponse>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun UserManagementScreen(
+    viewModel: UserManagementViewModel = koinViewModel(),
+    token: String
+) {
+    val allUsers by viewModel.allUsers
+    var isLoading by viewModel.isLoading
+    var errorMessage by viewModel.errorMessage
     var showCreateDialog by remember { mutableStateOf(false) }
     var userToEdit by remember { mutableStateOf<UserResponse?>(null) }
     var userToDelete by remember { mutableStateOf<UserResponse?>(null) }
-    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(token) { viewModel.refreshUsers(token) }
 
     // State for UI controls
     var searchQuery by remember { mutableStateOf("") }
@@ -41,21 +47,6 @@ fun UserManagementScreen(repository: HrRepository, token: String) {
     val pageSize = 10
     var currentPage by remember { mutableStateOf(1) }
 
-    fun refreshUsers() {
-        isLoading = true
-        errorMessage = null
-        coroutineScope.launch {
-            try {
-                allUsers = repository.getUsers(token) ?: emptyList()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load users: ${e.message}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) { refreshUsers() }
 
     val filteredUsers = remember(searchQuery, roleFilter, allUsers) {
         allUsers.filter {
@@ -135,15 +126,17 @@ fun UserManagementScreen(repository: HrRepository, token: String) {
         }
     }
 
+    val coroutineScope = rememberCoroutineScope()
+
     // --- DIALOGS ---
     if (showCreateDialog) {
         UserDialog(
             onDismiss = { showCreateDialog = false },
             onConfirmCreate = { newUserRequest ->
                 coroutineScope.launch {
-                    repository.createUser(token, newUserRequest)?.let {
+                    viewModel.createUser(token,newUserRequest){
                         showCreateDialog = false
-                        refreshUsers()
+                        viewModel.refreshUsers(token)
                     }
                 }
             }
@@ -156,9 +149,9 @@ fun UserManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { userToEdit = null },
             onConfirmUpdate = { updatedUserRequest ->
                 coroutineScope.launch {
-                    repository.updateUser(token, user.id, updatedUserRequest)?.let {
+                    viewModel.updateUser(token,user.id,updatedUserRequest){
                         userToEdit = null
-                        refreshUsers()
+                        viewModel.refreshUsers(token)
                     }
                 }
             }
@@ -171,9 +164,9 @@ fun UserManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { userToDelete = null },
             onConfirm = {
                 coroutineScope.launch {
-                    if (repository.deleteUser(token, user.id)) {
+                    viewModel.deleteUser(token, user.id) {
                         userToDelete = null
-                        refreshUsers()
+                        viewModel.refreshUsers(token)
                     }
                 }
             }

@@ -26,48 +26,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import uz.mobiledv.hr_frontend.data.remote.*
+import uz.mobiledv.hr_frontend.vm.AttendanceManagementViewModel
+import uz.mobiledv.hr_frontend.vm.UserManagementViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AttendanceManagementScreen(repository: HrRepository, token: String) {
-    var attendanceRecords by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
-    var projects by remember { mutableStateOf<List<Project>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun AttendanceManagementScreen(
+    token: String,
+    viewModel: AttendanceManagementViewModel = koinViewModel()
+) {
+    var attendanceRecords by viewModel.attendanceRecords
+    var projects by viewModel.projects
+    var isLoading by viewModel.isLoading
+    var errorMessage by viewModel.errorMessage
     var showCreateDialog by remember { mutableStateOf(false) }
     var recordToEdit by remember { mutableStateOf<AttendanceRecord?>(null) }
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        errorMessage = null
-        coroutineScope.launch {
-            try {
-                projects = repository.getProjects(token) ?: emptyList()
-                attendanceRecords = repository.getAttendance(token, null, null, null) ?: emptyList()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load data: ${e.message}"
-            } finally {
-                isLoading = false
-            }
-        }
+    LaunchedEffect(token){
+        viewModel.refreshAttendance(token)
     }
 
-    fun fetchAttendanceWithFilters(projectId: String?, startDate: String?, endDate: String?) {
-        isLoading = true
-        errorMessage = null
-        coroutineScope.launch {
-            try {
-                attendanceRecords = repository.getAttendance(token, projectId, startDate, endDate) ?: emptyList()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load attendance: ${e.message}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
+
+
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 24.dp)) {
         Text("Attendance Management",
@@ -127,9 +111,9 @@ fun AttendanceManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { showCreateDialog = false },
             onConfirmCreate = { request ->
                 coroutineScope.launch {
-                    repository.createAttendance(token, request)?.let {
+                    viewModel.createAttendance(token,request){
                         showCreateDialog = false
-//                        fetchAttendance()
+                        viewModel.refreshAttendance(token)
                     }
                 }
             }
@@ -143,9 +127,9 @@ fun AttendanceManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { recordToEdit = null },
             onConfirmUpdate = { request ->
                 coroutineScope.launch {
-                    repository.updateAttendance(token, record.id, request)?.let {
+                    viewModel.updateAttendance(token, record.id,request){
                         recordToEdit = null
-//                        fetchAttendance()
+                        viewModel.refreshAttendance(token)
                     }
                 }
             }
@@ -158,9 +142,9 @@ fun AttendanceManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { recordToDelete = null },
             onConfirm = {
                 coroutineScope.launch {
-                    if (repository.deleteAttendance(token, record.id)) {
+                    viewModel.deleteAttendance(token,record.id){
                         recordToDelete = null
-//                        fetchAttendance()
+                        viewModel.refreshAttendance(token)
                     }
                 }
             }

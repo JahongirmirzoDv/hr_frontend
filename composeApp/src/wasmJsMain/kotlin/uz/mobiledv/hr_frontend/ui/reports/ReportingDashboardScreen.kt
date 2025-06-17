@@ -12,26 +12,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.koin.compose.viewmodel.koinViewModel
 import uz.mobiledv.hr_frontend.data.HrRepository
 import uz.mobiledv.hr_frontend.data.remote.DashboardSummary
 import uz.mobiledv.hr_frontend.data.remote.ProjectAttendanceSummary
+import uz.mobiledv.hr_frontend.vm.ReportingDashboardViewModel
 
 @Composable
-fun ReportingDashboardScreen(repository: HrRepository, token: String) {
-    var summary by remember { mutableStateOf<DashboardSummary?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun ReportingDashboardScreen(
+    token: String,
+    viewModel : ReportingDashboardViewModel = koinViewModel()
+) {
+    var summary by viewModel.summary
+    var isLoading by viewModel.isLoading
+    var errorMessage by viewModel.errorMessage
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        errorMessage = null
-        try {
-            summary = repository.getDashboardSummary(token)
-        } catch (e: Exception) {
-            errorMessage = "Failed to load dashboard data: ${e.message}"
-        } finally {
-            isLoading = false
-        }
+    LaunchedEffect(token) {
+       viewModel.refreshSummary(token)
     }
 
     Box(

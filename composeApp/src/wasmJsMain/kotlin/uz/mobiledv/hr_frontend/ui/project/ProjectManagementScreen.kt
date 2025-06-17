@@ -20,15 +20,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import uz.mobiledv.hr_frontend.data.remote.Project
 import uz.mobiledv.hr_frontend.ui.employee.PaginationControls
+import uz.mobiledv.hr_frontend.vm.ProjectManagementViewModel
 import kotlin.math.ceil
 
 @Composable
-fun ProjectManagementScreen(repository: HrRepository, token: String) {
-    var allProjects by remember { mutableStateOf<List<Project>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun ProjectManagementScreen(
+    token: String,
+    viewModel: ProjectManagementViewModel = koinViewModel()
+) {
+    var allProjects by viewModel.allProjects
+    var isLoading by viewModel.isLoading
+    var errorMessage by viewModel.errorMessage
     var showCreateDialog by remember { mutableStateOf(false) }
     var projectToEdit by remember { mutableStateOf<Project?>(null) }
     var projectToDelete by remember { mutableStateOf<Project?>(null) }
@@ -40,22 +45,8 @@ fun ProjectManagementScreen(repository: HrRepository, token: String) {
     val pageSize = 9
     var currentPage by remember { mutableStateOf(1) }
 
-    fun refreshProjects() {
-        isLoading = true
-        errorMessage = null
-        coroutineScope.launch {
-            try {
-                allProjects = repository.getProjects(token) ?: emptyList()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load projects: ${e.message}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        refreshProjects()
+    LaunchedEffect(token) {
+        viewModel.refreshProjects(token)
     }
 
     val filteredProjects = remember(searchQuery, allProjects) {
@@ -161,9 +152,9 @@ fun ProjectManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { showCreateDialog = false },
             onConfirm = { newProject ->
                 coroutineScope.launch {
-                    repository.createProject(token, newProject)?.let {
+                    viewModel.createProject(token,newProject){
                         showCreateDialog = false
-                        refreshProjects()
+                        viewModel.refreshProjects(token)
                     }
                 }
             }
@@ -177,9 +168,9 @@ fun ProjectManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { projectToEdit = null },
             onConfirm = { updatedProject ->
                 coroutineScope.launch {
-                    repository.updateProject(token, project.id, updatedProject)?.let {
+                    viewModel.updateProject(token, project.id, updatedProject){
                         projectToEdit = null
-                        refreshProjects()
+                        viewModel.refreshProjects(token)
                     }
                 }
             }
@@ -193,9 +184,9 @@ fun ProjectManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { projectToDelete = null },
             onConfirm = {
                 coroutineScope.launch {
-                    if (repository.deleteProject(token, project.id)) {
+                    viewModel.deleteProject(token, project.id){
                         projectToDelete = null
-                        refreshProjects()
+                        viewModel.refreshProjects(token)
                     }
                 }
             }

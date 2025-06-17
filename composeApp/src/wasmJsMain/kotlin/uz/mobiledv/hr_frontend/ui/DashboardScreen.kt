@@ -57,10 +57,10 @@ fun DashboardScreen(
         // The content of the selected screen
         Box(modifier = Modifier.weight(1f)) {
             when (currentScreen) {
-                is Screen.Reporting -> ReportingDashboardScreen(repository, user.token)
-                is Screen.Projects -> ProjectManagementScreen(repository, user.token)
-                is Screen.Employees -> EmployeeManagementScreen(repository, user.token)
-                is Screen.Attendance -> AttendanceManagementScreen(repository, user.token)
+                is Screen.Reporting -> ReportingDashboardScreen( user.token)
+                is Screen.Projects -> ProjectManagementScreen( user.token)
+                is Screen.Employees -> EmployeeManagementScreen(user.token)
+                is Screen.Attendance -> AttendanceManagementScreen( user.token)
                 is Screen.Payroll -> PayrollScreen() // New Screen
                 is Screen.Reports -> ReportScreen() // New Screen
             }

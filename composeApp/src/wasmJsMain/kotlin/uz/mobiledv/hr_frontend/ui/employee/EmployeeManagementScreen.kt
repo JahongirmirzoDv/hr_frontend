@@ -22,14 +22,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import uz.mobiledv.hr_frontend.data.remote.*
+import uz.mobiledv.hr_frontend.vm.EmployeeManagementViewModel
+import uz.mobiledv.hr_frontend.vm.UserManagementViewModel
 import kotlin.math.ceil
 
 @Composable
-fun EmployeeManagementScreen(repository: HrRepository, token: String) {
-    var allEmployees by remember { mutableStateOf<List<Employee>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+fun EmployeeManagementScreen(
+    token: String,
+    viewModel: EmployeeManagementViewModel = koinViewModel()
+) {
+    var allEmployees by viewModel.allEmployees
+    var isLoading by viewModel.isLoading
+    var errorMessage by viewModel.errorMessage
     var showCreateDialog by remember { mutableStateOf(false) }
     var employeeToEdit by remember { mutableStateOf<Employee?>(null) }
     var employeeToDelete by remember { mutableStateOf<Employee?>(null) }
@@ -43,21 +49,8 @@ fun EmployeeManagementScreen(repository: HrRepository, token: String) {
     val pageSize = 10
     var currentPage by remember { mutableStateOf(1) }
 
-    fun refreshEmployees() {
-        isLoading = true
-        errorMessage = null
-        coroutineScope.launch {
-            try {
-                allEmployees = repository.getEmployees(token) ?: emptyList()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load employees: ${e.message}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
+    LaunchedEffect(token) { viewModel.refreshEmployees(token) }
 
-    LaunchedEffect(Unit) { refreshEmployees() }
 
     val filteredEmployees = remember(searchQuery, statusFilter, allEmployees) {
         allEmployees
@@ -156,9 +149,9 @@ fun EmployeeManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { showCreateDialog = false },
             onConfirmCreate = { request ->
                 coroutineScope.launch {
-                    repository.createEmployee(token, request)?.let {
+                    viewModel.createEmployee(token,request){
                         showCreateDialog = false
-                        refreshEmployees()
+                        viewModel.refreshEmployees(token)
                     }
                 }
             }
@@ -171,9 +164,9 @@ fun EmployeeManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { employeeToEdit = null },
             onConfirmUpdate = { request ->
                 coroutineScope.launch {
-                    repository.updateEmployee(token, employee.id, request)?.let {
+                    viewModel.updateEmployee(token, employee.id, request){
                         employeeToEdit = null
-                        refreshEmployees()
+                        viewModel.refreshEmployees(token)
                     }
                 }
             }
@@ -186,15 +179,16 @@ fun EmployeeManagementScreen(repository: HrRepository, token: String) {
             onDismiss = { employeeToDelete = null },
             onConfirm = {
                 coroutineScope.launch {
-                    if (repository.deleteEmployee(token, employee.id)) {
+                    viewModel.deleteEmployee(token, employee.id){
                         employeeToDelete = null
-                        refreshEmployees()
+                        viewModel.refreshEmployees(token)
                     }
                 }
             }
         )
     }
 }
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -228,6 +222,7 @@ fun EmployeeDialog(
                     value = salaryRate,
                     onValueChange = { salaryRate = it },
                     label = { Text("Salary Rate") })
+
                 ExposedDropdownMenuBox(
                     expanded = isDropdownExpanded,
                     onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }) {
